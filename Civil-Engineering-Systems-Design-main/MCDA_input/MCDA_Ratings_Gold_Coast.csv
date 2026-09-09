@@ -1,0 +1,18 @@
+MCDA Gold Coast Design Alternatives;;;;;;
+Stakeholder;Criteria;Artificial seaweed;Artificial reef;Breakwater;Groynes;Criteria_Weight
+Gold Coast City Council;Beach use;80;100;10;0;0.33
+Gold Coast City Council;Beach width and erosio control;25;0;80;100;0.13
+Gold Coast City Council;Costs;50;50;0;100;0.20
+Gold Coast City Council;Recreational opportunities;80;100;0;0;0.07
+Gold Coast City Council;Safety;100;0;75;75;0.27
+Local Community;Beach width;0;0;80;100;0.35
+Local Community;Environmental impact;100;100;0;0;0.05
+Local Community;Recreational opportunities;70;100;0;0;0.50
+Local Community;Safety;100;0;75;75;0.10
+Research Community;Erosion control;80;100;20;0;0.33
+Research Community;Environmental impact;100;50;0;0;0.50
+Research Community;Wave creation;0;100;0;10;0.17
+Surfing Community;Environmental;100;90;0;0;0.33
+Surfing Community;Surfing quality;0;100;0;5;0.67
+Tourist Sector;Beach width;0;0;80;100;0.67
+Tourist Sector;Recreational opportunities;70;100;0;0;0.33

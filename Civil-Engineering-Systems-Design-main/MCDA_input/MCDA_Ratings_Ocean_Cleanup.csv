@@ -1,0 +1,17 @@
+MCDA The Ocean Cleanup Alternatives;;;;;;
+Stakeholder;Criteria;Modular Fleet;Anchored Barrier Array;Autonomous Skimmer Vessels;System 03 (current);Criteria_Weight
+The Ocean Cleanup;Plastic removal efficiency (kg per time);65;45;75;90;0.35
+The Ocean Cleanup;Cost per kg removed;75;80;55;60;0.25
+The Ocean Cleanup;Scalability;85;55;80;70;0.2
+The Ocean Cleanup;Ecological/bycatch impact;70;75;65;65;0.2
+North Pacific commercial fishers;Fishing ground access;60;40;80;65;0.4
+North Pacific commercial fishers;Gear conflict / entanglement risk;55;40;80;65;0.35
+North Pacific commercial fishers;Vessel traffic disruption;75;90;65;50;0.25
+Investors/donors;Scalability;60;45;75;95;0.35
+Investors/donors;Ecological impact;75;80;50;60;0.35
+Investors/donors;Cost per kg removed;85;55;80;70;0.3
+Marine conservation advocates;Unintended ecological harm (bycatch risk);70;75;65;65;0.55
+Marine conservation advocates;Long-term ecosystem recovery;65;50;70;90;0.45
+Citizens;Personal Health;60;45;70;80;0.45
+Citizens;Beach/coastal cleanliness benefit;65;45;75;90;0.35
+Citizens;Ecological/bycatch risk;70;75;65;65;0.2

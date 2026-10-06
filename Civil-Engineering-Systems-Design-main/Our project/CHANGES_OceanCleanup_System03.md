@@ -1,6 +1,7 @@
 # Changes to `OceanCleanup_System03.ipynb`
 
-This file documents the changes made to the existing code of `OceanCleanup_System03.ipynb`, so the team can trace what was changed, why, and what is still open. Section names refer to the headings in the notebook.
+This file documents the changes made to the existing code of `OceanCleanup_System03.ipynb`, since the first run of the optimization.
+So we can trace what was changed, why, and what is still open. Section names refer to the headings in the notebook.
 
 ---
 
@@ -127,10 +128,66 @@ No design within the bounds satisfied all three constraints (0 % feasible in a s
 
 ---
 
-## 6. Open points
+## 6. Cost preference curve lowered (section *Preference Curves and Preference Functions*)
+
+### Problem in the previous version
+One system costs only 7.7–12.4 M€/yr (7.5 M€ of it is the fixed charter), so the cost is mainly set by the number of systems. With the points 7.5 / 55 / 85 a fleet of 4–5 systems still scored about 70, so cost never restricted the minmax design and most of the plotted curve covered fleets of 5–10 systems.
+
+### New version
+- Cost points changed to **7.5 / 30 / 60 → 100 / 50 / 0** in `prefs_before` and `pref_after`: halfway satisfied at about three systems at today's settings, unacceptable at about six.
+- The curve is now nearly linear (the 50-point lies slightly below the linear midpoint of 34). The markdown table was updated.
+- The budget limits are judgement and still need a source.
+- Effect: the minmax optimum moves from 4–5 systems to 3 systems (about 25 M€/yr), with almost the same plastic removal. Today's design scores 93 instead of 98 on cost.
+
+---
+
+## 7. Optimisation: several runs and corrected a-fine result (section *Optimisation*)
+
+### Problems in the previous version
+- A single GA run per method. Runs with other random seeds gave different designs (e.g. 3 or 4 systems for minmax).
+- The a-fine result was not an optimised design. a-fine scores are relative (the best design of every generation scores -100), so the GA never replaces the best design of its first, random generation and always stops after exactly `max_stall` generations with the "too fast convergence" warning. A larger `max_stall` alone does not change the returned design.
+
+### New version
+- Each method is run `n_runs = 5` times with a fixed seed per run (`np.random.seed`), so the results are reproducible. One line is printed per run instead of the generation log.
+- `max_stall` is set per method: 30 for minmax, 60 for a-fine (for a-fine this is the number of generations).
+- minmax: the run with the lowest score is kept.
+- a-fine: a wrapper around `objective` stores the populations the GA evaluates; the best feasible design of the **final** generation is taken (with `a_fine_aggregator`), and the winners of the five runs are compared with one more a-fine aggregation. The warning is hidden for a-fine only, because it always appears.
+- The GA code in `genetic_algorithm_pfm` was not modified.
+- New imports: `contextlib`, `io`, `a_fine_aggregator`. New variable `optimal_designs` holds the best design per method.
+- Result: four of five minmax runs agree (3 systems, 0.37 m/s; one run ends in a local optimum with 4 systems). All five a-fine runs agree (1 system, 800 m spacing, 0.30 m/s, 10 mm mesh).
+
+---
+
+## 8. Objective 5 – net fragmentation (sections *Objective Functions*, *Preference Curves and Preference Functions*)
+
+### Problem in the previous version
+Objective 5 only counted the microplastic that the system itself creates (plastic met × share smaller than the mesh × speed factor). Plastic removal did not appear in it, so the best design for citizens was the one that meets the least plastic. The a-fine optimum was therefore one small, slow system that removed only ~137 t/yr, and not deploying at all would have scored 100 for citizens. In reality, plastic that is left floating keeps breaking down into microplastic.
+
+### New version
+- `objective_function_5` now returns the **net** microplastic formation: created by the systems (unchanged formula) minus avoided by removal.
+- Avoided = plastic removed (`objective_function_2`) × `natural_frag_rate`.
+- New constant `natural_frag_rate = 0.03` per year: share of the floating plastic mass that degrades into microplastic per year, the best-fit value of Lebreton, Egger & Slat (2019). Added to `Constants_and_Sources.ipynb` (reference 21).
+- Only one year of avoided fragmentation is counted per tonne removed, although that plastic would have kept fragmenting in later years. The benefit is therefore a conservative estimate.
+- A negative value means more microplastic is avoided than created. The objective is still minimised. Its label is now "Net Fragmentation"; it depends on all five variables (`x1` enters through removal).
+- Range is now -191 to -1.7 t/yr; today's design gives -12.0 t/yr (1.7 created, 13.7 avoided). The systems create fragments equal to less than 1 % of the mass they remove, so the value is negative for every design.
+- Preference points changed from 0 / 0.5 / 3 to **-216 / -33 / 0 → 100 / 50 / 0** in `prefs_before` and `pref_after`: 0 = no net benefit, 100 = cleanup target of 7200 t/yr removed (× 3 %), 50 = the first ~1100 t/yr removed. These mirror the plastic-removal curve and are judgement.
+- The markdown description of objective 5, the objective table and the preference table were rewritten. The variables of the citizens' objective were updated in `Stakeholder_Objectives_and_optimisation/README.md`.
+- The scheme `stakeholder_objective_variable_scheme.png` was regenerated with an arrow from skirt depth (`x1`) to the citizens' objective (`INFLUENCES` in `objective_scheme.ipynb`). A new setting `VARIABLE_ORDER` in that notebook fixes the left-to-right order of the variables; without it the automatic layout swapped `x1` and `x2`.
+
+### Consequences
+- The citizens' objective now largely agrees with plastic removal instead of conflicting with it. It differs only by penalising high towing speeds and coarse meshes. The remaining conflicts are with cost, fishing-area interference and ecological risk.
+- Today's design scores 21.8 for citizens instead of 14.7.
+- minmax: still 3 systems, but faster (0.45 instead of 0.37 m/s) and with a slightly coarser mesh; lowest score ~51.
+- a-fine: changes from 1 small, slow system (removal score 7) to 3 systems with the maximum spacing (removal score ~50). Both methods now give nearly the same design.
+
+---
+
+## 9. Open points
 
 1. Find sources for the new constants `extraction_interval`, `plastic_bulk_density` and `trip_duration`, and add them to `Constants_and_Sources.ipynb`.
 2. Decide whether to keep constraint 2, since it never limits the design.
 3. Document the meaning of the factor `0.50` in constraint 3.
 4. Discuss the preference limits marked "judgement" in section 2 with the team, and update `pref_after` after the stakeholder game.
-5. The `'a-fine'` run stops after 16 generations with the GA's own warning about fast convergence (it converges to a single-system design). Consider a larger `max_stall` or checking the result with a second run.
+5. The budget limits of the cost curve (30 and 60 M€/yr) need a source.
+6. The 50-point of the net fragmentation curve (-33 t/yr) mirrors the plastic-removal curve; discuss in the stakeholder game whether citizens value avoided microplastic differently.
+7. Two of the five objectives (plastic removal and net fragmentation) now pull in the same direction; mention this in the reflection.

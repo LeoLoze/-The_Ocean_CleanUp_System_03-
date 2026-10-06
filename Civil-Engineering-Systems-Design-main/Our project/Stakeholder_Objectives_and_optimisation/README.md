@@ -32,7 +32,7 @@ This folder holds our own work for the System 03 design assignment. The course m
 | The Ocean Cleanup | Plastic removal | x1, x2, x3, x4 |
 | North Pacific fishers | Fishing-ground access | x2, x3 |
 | Marine conservation advocates | Ecological impact | x1, x3, x4, x5 |
-| Citizens | Microplastic removal (health proxy) | x2, x3, x4, x5 |
+| Citizens | Microplastic removal (health proxy) | x1, x2, x3, x4, x5 |
 
 | Variable | Description | Unit | Type |
 |---|---|---|---|
@@ -49,7 +49,7 @@ The barrier length is **fixed** (2,500 m), not a variable. All bounds and the re
 **`objective_scheme.ipynb`** (only needs `matplotlib`)
 1. Open it and choose the Python kernel. Run all cells.
 2. The figure appears in the notebook and is saved as `stakeholder_objective_variable_scheme.png` next to it.
-3. To change the scheme, edit the *Content* cell (stakeholders, objectives, variables, `INFLUENCES`) and run all cells again. The order of the variables is re-optimised automatically and the labels x1–x5 are renumbered left to right; the printed `labels:` line shows which variable got which number.
+3. To change the scheme, edit the *Content* cell (stakeholders, objectives, variables, `INFLUENCES`) and run all cells again. The order of the variables is fixed by `VARIABLE_ORDER`, so the labels x1–x5 match the optimisation notebook; the printed `labels:` line shows which variable got which number. Set `VARIABLE_ORDER = None` to let the code choose the order with the fewest arrow crossings (the labels may then change).
 
 **`OceanCleanup_System03.ipynb`** (needs `matplotlib`, `numpy`, `scipy`)
 1. Keep it inside `Civil-Engineering-Systems-Design-main/`. It imports `genetic_algorithm_pfm` by relative import and fails with `ModuleNotFoundError` anywhere else.

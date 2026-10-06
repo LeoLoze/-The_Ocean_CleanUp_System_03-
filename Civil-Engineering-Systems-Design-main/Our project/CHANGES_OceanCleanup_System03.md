@@ -39,6 +39,22 @@ Code changes in the cell:
 - The cell prints the preference scores of today's design.
 - The markdown above the cell now explains the curves for System 03 instead of the reef.
 
+### Update: three points per curve
+The linear curves assumed that every unit of improvement is worth the same to a stakeholder. Each curve now has a third point at a score of **50** (the value at which the stakeholder is halfway satisfied); its objective value sets the curve shape. The 0 and 100 limits are unchanged:
+
+| Objective | Points (objective → score) | Shape |
+|---|---|---|
+| Cost [M€/yr] | 7.5 / 55 / 85 → 100 / 50 / 0 | slow drop, then steep (budget) |
+| Plastic removal [t/yr] | 0 / 1100 / 7200 → 0 / 50 / 100 | diminishing returns |
+| Fishing interference [km²] | 0 / 25 / 40 → 100 / 50 / 0 | flat, then steep |
+| Ecological risk [animals/yr] | 1e6 / 1.5e7 / 1e8 → 100 / 50 / 0 | log-like (order of magnitude) |
+| Fragmentation [t/yr] | 0 / 0.5 / 3 → 100 / 50 / 0 | steep first |
+
+- The score of the middle point is fixed at 50 for all stakeholders so every middle point has the same meaning and can be elicited with one question in the stakeholder game ("at which value would you be halfway satisfied?").
+- The 50-points are judgement and should be revisited in the stakeholder game (`pref_after` is still a copy of `prefs_before`).
+- `pref_score` now clamps the **objective value** to the range of the control points before interpolating, instead of clipping the score afterwards. With 3+ points, `pchip_interpolate` extrapolates with a cubic that bends back (e.g. a bycatch of 2e8 scored 46 instead of 0), so clipping the score was no longer sufficient.
+- The "45° slope" comments in the preference and optimisation plots were removed; the markdown table was rewritten without the outdated "10-system fleet" numbers.
+
 ---
 
 ## 3. Optimisation (new section *Optimisation*)
@@ -97,7 +113,21 @@ No design within the bounds satisfied all three constraints (0 % feasible in a s
 
 ---
 
-## 5. Open points
+## 5. Objective 4 – Ecological risk recalibrated
+
+### Problem in the previous version
+`animal_density` (2.1e-3 per m³) was derived from the neuston count (1/180 of the plastic pieces per km²) and applied to the whole swept water volume with a 63 % capture probability. One System 03 came out at ~9e7 animals/yr, about 4,000 times the observed bycatch. Neuston is not bycatch (no systematic impact found by the EIA and Egger et al., 2025).
+
+### New version
+- Bycatch = sea surface area swept × `bycatch_ref` × depth, speed and mesh factors that equal 1 for System 002 (3 m, 0.75 m/s, 10 mm).
+- `bycatch_ref` = 1.0 per km² swept, calibrated on ~13,800 individuals of primary bycatch over ~12,900 km² swept by System 002 in campaigns 1–12 (EIA Table 5-7, §5.2.5).
+- New constants `bycatch_ref`, `depth_ref`, `speed_ref`; `animal_density` removed. Derivation, plausibility checks and limitations are in `Constants_and_Sources.ipynb` (new section *Calibration of `bycatch_ref`*, references 18–20 added).
+- Range is now ~920 to ~530,000 animals/yr; today's design gives ~20,000 (per-tonne cross-check: ~30,000).
+- Preference points changed to 2,000 / 25,000 / 250,000 → 100 / 50 / 0, so today's system scores ~56 instead of ~1.
+
+---
+
+## 6. Open points
 
 1. Find sources for the new constants `extraction_interval`, `plastic_bulk_density` and `trip_duration`, and add them to `Constants_and_Sources.ipynb`.
 2. Decide whether to keep constraint 2, since it never limits the design.

@@ -182,12 +182,59 @@ Objective 5 only counted the microplastic that the system itself creates (plasti
 
 ---
 
-## 9. Open points
+## 9. Preferences after the stakeholder game (sections *Weights*, *Preference Curves and Preference Functions*)
+
+### Problems in the previous version
+- The notebook ran `weights = weights_after` together with `prefs = prefs_before`, so the result belonged to neither the technical nor the social cycle.
+- `pref_after` was an identical copy of `prefs_before`, so the social cycle only changed the weights.
+- The ecological-risk curve in the code (1,000 / 50,000 / 100,000) differed from the one in the markdown table and in `Constants_and_Sources.ipynb` (2,000 / 25,000 / 250,000). The code version is the correct one.
+
+### New version
+- The two sets belong together like the weights: `weights_before` with `prefs_before` (technical cycle), `weights_after` with `pref_after` (social cycle). Both switches are now set to *after*; the comments next to them say which sets belong together.
+- `pref_after` changes two curves. The weights carry the influence of a stakeholder, so a curve only changes where the stakeholder judges the outcome differently after seeing the technical-cycle design:
+
+| Objective | `prefs_before` | `pref_after` | Reason |
+|---|---|---|---|
+| Ecological risk [animals/yr] | 1,000 / 50,000 / 100,000 | 1,000 / 25,000 / 60,000 | Ecological impact or bycatch is a criterion for four of the five stakeholders in the MCDA, but only the conservation advocates carry it in the optimisation, and their weight drops to 0.175. Halfway satisfied at about today's level, unacceptable at three times today. |
+| Net fragmentation [t/yr] | -216 / -33 / 0 | -216 / -20 / 0 | The citizens' MCDA criteria (health, cleanliness) depend on visible progress; their influence is the lowest (0.125). Halfway satisfied at ~670 instead of ~1100 t/yr removed. |
+
+- Cost, plastic removal and fishing-area interference are unchanged in `pref_after`.
+- The markdown table now shows the ecological-risk curve of the code; a new subsection *Preferences after the stakeholder game* explains `pref_after`. The table *Preference curve - Ecological risk* in `Constants_and_Sources.ipynb` shows both versions.
+- The values in `pref_after` are a proposal and judgement. Replace them if the stakeholder game gives other answers.
+
+---
+
+## 10. Constraint 1 and drag coefficient from measured data (sections *Constraints*, *Objective Functions*)
+
+### Problem in the previous version
+Today's design (`X_irl`: 4 m skirt, 1600 m span, 0.70 m/s) violated constraint 1: 964 kN per cable against an allowable 550 kN. The real System 03 is operated at about these settings (span 1,460 - 1,800 m, 0.75 m/s; EIA and The Ocean Cleanup, 2026), so the numbers of the constraint were wrong, not the design. Neither number had a usable source: 550 kN was a proxy for an unknown rope, and `Cd = 1.2` is the drag coefficient of a single twine, not of the system.
+
+### New version
+
+| Constant | Previous | New | Source |
+|---|---|---|---|
+| `Cd` (constraint 1) and `drag_coeff` (cost objective) | 1.2 | 0.7 | Effective coefficient on skirt depth x span, calibrated on 18 measured towline tensions of System 002 (Gonzalez Jimenez et al., 2023, Fig. 19). Least-squares fit: 0.72. |
+| `max_tension` | 550 kN | 1677 kN | Bollard pull of one towing vessel, 171 t (Maersk Supply Service T-type specification sheet). |
+
+- The formulas were not changed, only the two values and their comments.
+- The same drag coefficient is used in constraint 1 and in the cost objective, so fuel cost drops: today's design costs 9.8 instead of 11.2 M€/yr, and the cost range is 7.7 - 116 instead of 7.7 - 143 M€/yr. The cost preference points (7.5 / 30 / 60) still correspond to about three and six systems at today's settings (3 x 9.8 and 6 x 9.8 M€/yr).
+- The derivation, plausibility checks and limitations are in `Constants_and_Sources.ipynb` (new section *Calibration of the drag coefficient*, reference 22 added).
+
+### Result
+- Today's design reaches ~560 kN per cable, a third of the limit, and satisfies all three constraints.
+- No design within the bounds exceeds the limit (at most ~970 kN), so constraint 1 is **not active** any more. Only constraint 3 limits the design (towing speeds above ~0.73 m/s); about 96 % of random designs are feasible.
+- The towing speed of the optimum is no longer capped by the cable tension. Check runs outside the notebook (min-max): technical cycle 3 systems at ~0.53 m/s (before: 0.43 m/s), ~27.5 M€/yr and ~1,300 t/yr; social cycle 4 systems at ~0.45 - 0.55 m/s with a mesh near the upper bound of 20 mm, ~35 M€/yr, ~1,350 - 1,400 t/yr and ~42,000 animals/yr.
+- The outputs stored in the notebook are from before these changes. Run all cells to update them.
+
+---
+
+## 11. Open points
 
 1. Find sources for the new constants `extraction_interval`, `plastic_bulk_density` and `trip_duration`, and add them to `Constants_and_Sources.ipynb`.
-2. Decide whether to keep constraint 2, since it never limits the design.
+2. Decide whether to keep constraints 1 and 2, since they no longer limit the design. Constraint 1 could become active again with a wider speed or depth range, or with a sourced strength of the towing line or net.
 3. Document the meaning of the factor `0.50` in constraint 3.
-4. Discuss the preference limits marked "judgement" in section 2 with the team, and update `pref_after` after the stakeholder game.
+4. Discuss the preference limits marked "judgement" in section 2 and the proposed `pref_after` (section 9) with the team, and replace them with the answers of the stakeholder game.
 5. The budget limits of the cost curve (30 and 60 M€/yr) need a source.
-6. The 50-point of the net fragmentation curve (-33 t/yr) mirrors the plastic-removal curve; discuss in the stakeholder game whether citizens value avoided microplastic differently.
-7. Two of the five objectives (plastic removal and net fragmentation) now pull in the same direction; mention this in the reflection.
+6. Two of the five objectives (plastic removal and net fragmentation) pull in the same direction; mention this in the reflection.
+7. The drag coefficient is calibrated on System 002 (10 mm mesh) and does not depend on the mesh size `x5`; the specification sheet used for the bollard pull is that of a sister vessel of the Maersk Tender.
+8. The stored a-fine result is the best design of the first random generation (see section 7); the wrapper described there is not in the current optimisation cell.

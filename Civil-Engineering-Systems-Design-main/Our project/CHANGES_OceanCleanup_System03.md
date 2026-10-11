@@ -228,13 +228,141 @@ Today's design (`X_irl`: 4 m skirt, 1600 m span, 0.70 m/s) violated constraint 1
 
 ---
 
-## 11. Open points
+## 11. Skirt depth: underflow and bycatch depth factor (section *Objective Functions*)
 
-1. Find sources for the new constants `extraction_interval`, `plastic_bulk_density` and `trip_duration`, and add them to `Constants_and_Sources.ipynb`.
-2. Decide whether to keep constraints 1 and 2, since they no longer limit the design. Constraint 1 could become active again with a wider speed or depth range, or with a sourced strength of the towing line or net.
-3. Document the meaning of the factor `0.50` in constraint 3.
-4. Discuss the preference limits marked "judgement" in section 2 and the proposed `pref_after` (section 9) with the team, and replace them with the answers of the stakeholder game.
-5. The budget limits of the cost curve (30 and 60 M€/yr) need a source.
-6. Two of the five objectives (plastic removal and net fragmentation) pull in the same direction; mention this in the reflection.
-7. The drag coefficient is calibrated on System 002 (10 mm mesh) and does not depend on the mesh size `x5`; the specification sheet used for the bollard pull is that of a sister vessel of the Maersk Tender.
-8. The stored a-fine result is the best design of the first random generation (see section 7); the wrapper described there is not in the current optimisation cell.
+### Problem in the previous version
+- `plastic_depth = 5` m was not what its source says. 5 m is the depth range that Reisser et al. (2015) sampled; the depth scale they found for the plastic mass is 0.26 - 0.59 m. With such a value the depth term is practically 1, a deeper skirt has no benefit, and the skirt depth ends at its lower bound.
+- The bycatch scaled linearly with the skirt depth. This contradicts the reasoning of objective 4, which uses the swept area instead of the swept volume because the bycatch is fish living near the surface: swept area times skirt depth is the swept volume again.
+
+### New version
+
+| Item | Previous | New | Source |
+|---|---|---|---|
+| Depth term of objective 2 | `1 - exp(-x1 / plastic_depth)`, `plastic_depth = 5` m: share of the plastic above the skirt depth | `1 - exp(-x1 / underflow_depth)`, `underflow_depth = 1.5` m: share of the plastic that is not dragged under the skirt | Assumption. Rough calibration on the retention efficiency of System 002/002A (3 m wings, 68 %) and System 002B (4 m wings, 73 %) in Sainte-Rose et al. (2026), Table 2. |
+| Depth factor of objective 4 | `x1 / depth_ref` | `np.sqrt(x1 / depth_ref)` | The EIA expects the 4 m wings to catch fish only "to a slightly greater extent" than the 3 m wings, because most species in the bycatch "would not be affected" (CSA Ocean Sciences Inc., 2023, EIA Addendum §3.3.2.2). The square root gives +15 % for this step instead of +33 %. The exponent of 0.5 is an assumption. |
+
+- The constant is renamed from `plastic_depth` to `underflow_depth`; the form of the formula in objective 2 is unchanged.
+- `bycatch_ref` is unchanged, because both depth factors are 1 for the reference system (3 m).
+- The derivations and limitations are in `Constants_and_Sources.ipynb` (new sections *Underflow depth scale* and *Depth factor of the bycatch*).
+
+### Result
+- Today's design (`X_irl`) removes ~770 instead of ~456 t/yr and catches ~17,000 instead of ~20,000 animals/yr; net fragmentation is -21.5 instead of -12.0 t/yr. The per-tonne cross-check of the bycatch rises to ~51,000 animals/yr.
+- The reasoning texts of the ecological-risk curves were updated to the new level of today's design (e.g. 25,000 is now about 1.5 times today, 60,000 about 3.5 times). The curve values were not changed.
+- Check runs outside the notebook (social cycle, 8 GA runs per method): the weighted sum of the preference scores is highest at a skirt depth of ~3.5 m, but it is nearly flat (64.8 at 3 m, 64.9 at 3.5 m, 64.2 at 6 m). Min-max gives 2 systems with a skirt of 3.7 - 5.3 m at the same score; a-fine gives mostly 1 system with a skirt of 3.3 - 5.1 m. Before these changes the skirt went to the upper bound of 6 m.
+- The outputs stored in the notebook are from before these changes. Run all cells to update them.
+
+---
+
+## 12. One fuel model for the cost objective and constraint 3 (sections *Constraints*, *Objective Functions*, *Preference Curves and Preference Functions*)
+
+### Problems in the previous version
+- The cost objective and constraint 3 used two different fuel models. The cost objective took the fuel from the towing power only (about 2 M€/yr for today's design). Constraint 3 used `K_base` and `K_weight`, which depended on the towing speed only and had no documented derivation (factor `0.50`).
+- Constraint 3 did not use the values of `Constants_and_Sources.ipynb` (`Fuel_max` was 1.25 instead of 2.4 million litres).
+- The reported charter cost includes fuel, so fuel was counted twice in the cost objective.
+- Several markdown texts and code comments no longer matched `Constants_and_Sources.ipynb` (e.g. the derivation of `bycatch_ref` and the sources of `v_critical`, `v_avoid`, `safety_buffer`, `plastic_size_char` and `frag_factor`).
+
+### New version
+- New function `fuel_per_day(x1, x2, x4)` in the objective cell, used by `objective_function_1` and by `constraint_3`: the fuel use measured on System 002, plus the fuel for the difference in towing power between the design and System 002 (3 m skirt, 520 m span, 0.75 m/s).
+
+| Constant | Value | Source |
+|---|---|---|
+| `fuel_ref` | 18.1 t/day | 2 vessels x 9.05 t per day, average of campaigns 1 - 12 (CSA Ocean Sciences Inc., 2023, §2.4.1) |
+| `span_ref` | 520 m | Span of System 002 in nominal mode (CSA Ocean Sciences Inc., 2023) |
+| `sfoc` | 0.175 kg/kWh | Medium-speed diesel engine on marine diesel oil (IMO, 2020, Table 19) |
+| `fuel_price` | 1,050 EUR/t | Sainte-Rose et al. (2026), Supplementary Table S6 |
+| `litres_per_tonne` | 1,185 L/t | Gas/diesel oil (IEA, 2005, Table A3.8) |
+| `charter_cost` | 7.2 M€/yr (was 13.2) | 13.13 M€ reported including fuel (The Ocean Cleanup, 2025) minus 5.9 M€ fuel of today's design |
+
+- Removed: `fuel_cost`, `K_base` and `K_weight`.
+- Constraint 3 now uses `Fuel_max = 2.4e6` L and `trip_duration = 49` days, as in `Constants_and_Sources.ipynb`, and depends on skirt depth, vessel spacing and towing speed.
+- The extraction interval is not part of the fuel model: an extraction takes less than 12 hours and happens at most every 7 days, and the measured fuel use is a campaign average that already includes it.
+- The ecological-risk curves were multiplied by 2.9, like `bycatch_ref`: 2,900 / 145,000 / 290,000 before the game and 2,900 / 72,500 / 174,000 after. The scores and the reasoning stay as they were.
+- Markdown and comments corrected to `Constants_and_Sources.ipynb`: constraint table and text, cost objective, derivation of `bycatch_ref`, the cost and ecological-risk rows of the preference tables, and the sources in the constants cell.
+- `Constants_and_Sources.ipynb`: the `charter_cost` row is updated, the rows of `fuel_cost`, `K_base` and `K_weight` are replaced by the rows of the new constants, and references 25 and 26 are added.
+
+### Result
+- Fuel use: 18.1 t/day for System 002, about 22 t/day for today's design and 16.6 - 26.6 t/day within the bounds. Only about a tenth of the measured fuel use is towing work.
+- Today's design costs 13.4 M€/yr (7.2 charter + 0.3 material + 5.9 fuel), which matches the reported 13.13 M€; one system costs 11.9 - 14.7 M€/yr. The cost points of 30 and 60 M€/yr now correspond to a little more than two systems and to between four and five systems at today's settings. The curve values were not changed.
+- No constraint is active any more. Today's design uses 53 % of the fuel capacity in one campaign and no design within the bounds uses more than 64 %, so the towing speed is no longer capped at ~0.73 m/s.
+- Check runs outside the notebook (5 GA runs per method). Social cycle: min-max gives 2 systems at ~0.74 m/s with a mesh of 18 - 20 mm (~28 M€/yr, ~1,870 t/yr, ~99,000 animals/yr); a-fine gives 1 system at 0.66 - 0.73 m/s (~13 M€/yr, 740 - 910 t/yr). Technical cycle: min-max gives 2 systems at 0.58 - 0.64 m/s with a 10 mm mesh (~25.5 M€/yr, ~1,700 t/yr, ~118,000 animals/yr).
+- The outputs stored in the notebook are from before these changes. Run all cells to update them.
+
+---
+
+## 13. Clean-up of comments, markdown and references (both notebooks)
+
+No value, formula, bound, weight or preference point was changed. The executable code of `OceanCleanup_System03.ipynb` is identical before and after, so the stored outputs are still valid.
+
+### `OceanCleanup_System03.ipynb`
+- Code comments no longer name sources; the sources are only in `Constants_and_Sources.ipynb`. The descriptions in the comments follow that document.
+- Three comments that contradicted the model were corrected: the skirt-depth bound (underflow instead of the natural depth of the plastic), "800 is the size of System 02" (800 m is its barrier length; its span is 520 m) and "width of the net 2 km" (the barrier is 2.2 km long).
+- The "placeholder" notes, the template instructions and the closing note were removed, and the markdown was shortened from about 23,000 to 15,000 characters. All numbers in the markdown were recomputed with the current model.
+- The claim that the speed term "gives an optimal towing speed" was removed: the product of speed and retention peaks at 0.99 m/s, above the speed bound of 0.75 m/s.
+- The bounds and today's design are now in the variable table; the weights of both cycles are in the weights table.
+- The image link no longer goes through the parent folder (`Stakeholder_Objectives_and_optimisation/...png`).
+
+### `Constants_and_Sources.ipynb`
+- The reference list is sorted alphabetically, written in one format, and contains exactly the sources that are cited (17 entries).
+- Removed because nothing cites them any more: System 002 mid-term evaluation, Liese et al. (2026), the $7.5 billion press release, Reisser et al. (2015), the Great Pacific Garbage Patch page, the System 002 milestone page, "System 002 and Marine Life" and the neuston FAQ. Removed as duplicates: the second entries of the Beginner's Guide and of the EIA, and "Ships and Oil".
+- Added because they were cited without an entry: United Nations (1982) and the Maersk Topper sheet (source of the 171 t bollard pull). Lebreton et al. "(2019)" for the garbage-patch paper is corrected to 2018.
+- Citation keys now match the list (e.g. Leal Filho et al., Saettone et al., Maersk Supply Service n.d.-a / n.d.-b). `uptime` cites Sainte-Rose et al. (2026), which is the paper the old entry "The Ocean Cleanup (2026)" pointed to. `rho_water` is marked as a standard value instead of "Wikipedia".
+- Notes corrected: `escape_steepness` (the retention is 0.5 at `v_critical`, not 1.0 below it), `bycatch_ref` (66 &times; 0.044, not 0.44), `extraction_interval` ("5.5 days is average" removed, it does not follow from 2.5 to 7 days). `fuel_max` is renamed to `Fuel_max`, as in the code. Heading of constraint 2 renamed to *Maximum retention zone capacity*.
+
+---
+
+## 14. Sourced bounds and today's design, one vessel sheet, third scenario (sections *Design Variables and Bounds*, *Constraints*, *Weights*, *Preference Curves and Preference Functions*)
+
+The optimisation cell (GA call and options) and `genetic_algorithm_pfm` were not changed.
+
+### Bounds and today's design
+
+| Variable | Previous bounds | New bounds | Previous `X_irl` | New `X_irl` | Source |
+|---|---|---|---|---|---|
+| `x1` skirt depth [m] | 3 - 6 | 3 - 6 | 4 | 4 | 3 m = System 002, 4 m = System 03 (CSA Ocean Sciences Inc., 2023, Table 2-1). 6 m is an assumption. |
+| `x2` vessel spacing [m] | 800 - 1600 | 520 - 1800 | 1600 | 1460 | 520 m = span of System 002, 1,460 m = span of System 03 (CSA Ocean Sciences Inc., 2023); 1,800 m = span simulated for the next systems (Sainte-Rose et al., 2026, Table 1) |
+| `x3` number of systems [-] | 1 - 10 | 1 - 20 | 1 | 1 | Largest fleet in the cleanup scenarios (Sainte-Rose et al., 2026, Table 1) |
+| `x4` towing speed [m/s] | 0.3 - 0.75 | 0.26 - 1.29 | 0.70 | 0.75 | 0.5 to 2.5 knots (CSA Ocean Sciences Inc., 2023); 0.75 m/s operating speed (Sainte-Rose et al., 2026, Table 1) |
+| `x5` mesh size [mm] | 10 - 20 | 10 - 20 | 16 | 16 | 10 mm = System 002, 16 mm = System 03 (CSA Ocean Sciences Inc., 2023, Table 2-1). 20 mm is an assumption. |
+
+- New table *Design variables - bounds and today's design* in `Constants_and_Sources.ipynb`.
+
+### One vessel sheet
+- `max_tension` is 1700 kN (was 1677): 173.3 t bollard pull on the sheet of the Maersk Traveller, the sheet that already gave the fuel capacity (2 x 1,191 m3). The Maersk Topper sheet (171 t) is no longer used.
+- No sheet is available for the Maersk Tender and Maersk Trader, which tow System 03. They are vessels of the same class and length (73.2 m) as the Maersk Traveller. The two sister sheets we read give 171 t and 173.3 t bollard pull, but 1,960 and 1,191 m3 of fuel, so the fuel capacity used is the lower one.
+
+### Constant that follows from today's design
+- `charter_cost` is 7.1e6 (was 7.2e6): the reported 13.13 M€ minus the fuel of today's design, which is now 22.6 t/day (6.1 M€) instead of 22 t/day (5.9 M€).
+
+### Third weight and preference set
+- `weights_env = [0.15, 0.20, 0.15, 0.35, 0.15]`: the scenario *Environmental priority* of the MCDA. The three weight sets are now the three stakeholder-weight scenarios of the MCDA.
+- `pref_env`: as `pref_after`, but with a stricter ecological-risk curve, 2,900 / 50,000 / 100,000 (halfway satisfied at today's bycatch, which the EIA rated *Low*; unacceptable at twice today). This is a proposal, like `pref_after`.
+- The switches `weights` and `prefs` still select one cycle per run; they are left on the social cycle.
+
+### Result
+- Today's design: 13.4 M€/yr, ~860 t/yr, 4.5 km2, ~51,000 animals/yr, -24.9 t/yr.
+- The constraints are active again: about 5 % of the designs within the bounds exceed the cable tension and about 7 % the fuel capacity (deep skirt, wide spacing and high speed together). The retention zone capacity is only reached at the very edge (25.1 t at 6 m, 1,800 m, 0.99 m/s). Today's design uses 35 %, 66 % and 55 % of the three limits.
+- The plastic removed per hour is now highest at about 1.0 m/s, inside the speed bounds.
+- Check runs outside the notebook with the unchanged GA settings (min-max, 4 runs each; no Tetra):
+
+| Cycle | Systems | Skirt [m] | Spacing [m] | Speed [m/s] | Mesh [mm] | Cost [M€/yr] | Removal [t/yr] | Bycatch [animals/yr] |
+|---|---|---|---|---|---|---|---|---|
+| Technical | 2 | 3.0 - 3.8 | 1,690 - 1,800 | 0.58 - 0.61 | 10 | 25 | ~1,760 | ~114,000 |
+| Social | 2 | 3.8 - 5.5 | ~1,800 | 0.64 - 0.74 | 19 - 20 | 27 | ~1,990 | ~94,000 |
+| Social, environmental priority | 3 | 3.2 - 4.7 | 1,640 - 1,800 | 0.29 - 0.31 | 18 - 20 | 36 | ~1,300 | ~27,500 |
+
+- a-fine gives one system in all three cycles, with different settings in every run.
+- **The outputs stored in the notebook are from before these changes. Run all cells to update them** (once per cycle, with `weights` and `prefs` set to that cycle).
+
+---
+
+## 15. Open points
+
+1. All three constraints are active again (section 14), so they are kept.
+2. Discuss the preference limits marked "judgement" in section 2 and the proposed `pref_after` (section 9) and `pref_env` (section 14) with the team, and replace them with the answers of the stakeholder game.
+3. The budget limits of the cost curve (30 and 60 M€/yr) need a source. They were set when one system cost ~9.8 M€/yr; it now costs ~13.4 M€/yr.
+4. Two of the five objectives (plastic removal and net fragmentation) pull in the same direction; mention this in the reflection.
+5. The drag coefficient is calibrated on System 002 (10 mm mesh, 0.50 - 0.86 m/s) and does not depend on the mesh size `x5`; the speed bounds now go up to 1.29 m/s. The specification sheet used for the bollard pull and the fuel capacity is that of a sister vessel of the Maersk Tender.
+6. The stored a-fine result is the best design of the first random generation (see section 7); the wrapper described there is not in the current optimisation cell.
+7. `underflow_depth` (1.5 m) and the square-root depth factor of the bycatch are assumptions (section 11). The optimum is nearly flat in the skirt depth, so the GA result for `x1` differs from run to run.
+8. The plastic-removal and net-fragmentation curves were set when today's design removed ~456 t/yr; it now removes ~860 t/yr.
+9. The fuel model (section 12) assumes that everything except the towing work, about 90 % of the measured fuel use, does not depend on the design. The measured value is a campaign average of System 002 that includes transit.

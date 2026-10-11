@@ -1,38 +1,27 @@
-# Our project – System 03 stakeholder objectives and optimisation
+# System 03 – stakeholder objectives and optimisation
 
-This folder holds our own work for the System 03 design assignment. The course material (genetic algorithm, reef example) lives one level up in `Civil-Engineering-Systems-Design-main/`.
+Our work for the System 03 design assignment is in the folder above this one (`Our project/`).
 
-## Structure
-
-```
--The_Ocean_CleanUp_System_03-/
-├── Our project/
-│   ├── Ocean_Cleanup_Stakeholder_Matrix.xlsx        1. stakeholders, criteria, weights, alternative scores
-│   ├── Stakeholder_Objectives_and_optimisation/
-│   │   ├── objective_scheme.ipynb                   2. draws the scheme (stakeholder -> objective -> variables)
-│   │   └── stakeholder_objective_variable_scheme.png    the resulting figure
-│   └── README.md                                    this file
-└── Civil-Engineering-Systems-Design-main/
-    ├── OceanCleanup_System03.ipynb                  3. the optimisation notebook (our model)
-    ├── EXAMPLE_Artificial_Reef.ipynb                   reference example we follow step by step
-    └── genetic_algorithm_pfm/                          GA code provided by the course (do not edit)
-```
-
-## Workflow (how the pieces connect)
-
-1. **Excel matrix** – who the stakeholders are, what they care about, and how much (weights).
-2. **Scheme** – one objective per stakeholder, and the design variables that drive each objective.
-3. **Optimisation notebook** – the variables become code; next come constraints, objective functions, preference functions and the GA run.
+| File | Content |
+|---|---|
+| `OceanCleanup_System03.ipynb` | The optimisation model: design variables, constraints, objectives, weights, preference curves, the optimisation and the results of all cycles |
+| `Constants_and_Sources.ipynb` | Value, source and note for every constant, for the bounds and for today's design; reference list |
+| `MCDA_OceanCleanup.ipynb` | MCDA of the design alternatives; its three stakeholder-weight scenarios are the weights of the optimisation |
+| `Ocean_Cleanup_Stakeholder_Matrix.xlsx` | Stakeholders, criteria, weights and scores of the alternatives |
+| `Stakeholder_Objectives_and_optimisation/objective_scheme.ipynb` | Draws the scheme below (`stakeholder_objective_variable_scheme.png`) |
+| `Summary/` | Summary of the optimisation results, with the figures |
+| `CHANGES_OceanCleanup_System03.md` | Log of the changes to the optimisation notebook |
+| `genetic_algorithm_pfm/` | Genetic algorithm provided by the course (not edited) |
 
 ## The scheme (objectives and variables)
 
 | Stakeholder | Objective | Influenced by |
 |---|---|---|
-| Investors / donors | Cost | x1, x2, x3, x4 |
-| The Ocean Cleanup | Plastic removal | x1, x2, x3, x4 |
-| North Pacific fishers | Fishing-ground access | x2, x3 |
-| Marine conservation advocates | Ecological impact | x1, x3, x4, x5 |
-| Citizens | Microplastic removal (health proxy) | x1, x2, x3, x4, x5 |
+| Investors / donors | Annual cost | x1, x2, x3, x4 |
+| The Ocean Cleanup | Plastic removal | x1, x2, x3, x4, x5 |
+| North Pacific commercial fishers | Fishing-area interference | x2, x3 |
+| Marine conservation advocates | Ecological risk (bycatch) | x1, x2, x3, x4, x5 |
+| Citizens | Future plastic fragmentation (net) | x1, x2, x3, x4, x5 |
 
 | Variable | Description | Unit | Type |
 |---|---|---|---|
@@ -42,27 +31,15 @@ This folder holds our own work for the System 03 design assignment. The course m
 | x4 | Towing speed | m/s | continuous |
 | x5 | Mesh / screen size | mm | continuous |
 
-The barrier length is **fixed** (2,500 m), not a variable. All bounds and the reference design `X_irl` are placeholders until we have sources.
+The barrier length is fixed (2,200 m). The bounds and today's design are in `Constants_and_Sources.ipynb`.
 
 ## How to use the notebooks
 
-**`objective_scheme.ipynb`** (only needs `matplotlib`)
-1. Open it and choose the Python kernel. Run all cells.
-2. The figure appears in the notebook and is saved as `stakeholder_objective_variable_scheme.png` next to it.
-3. To change the scheme, edit the *Content* cell (stakeholders, objectives, variables, `INFLUENCES`) and run all cells again. The order of the variables is fixed by `VARIABLE_ORDER`, so the labels x1–x5 match the optimisation notebook; the printed `labels:` line shows which variable got which number. Set `VARIABLE_ORDER = None` to let the code choose the order with the fewest arrow crossings (the labels may then change).
+**`OceanCleanup_System03.ipynb`** (needs `matplotlib`, `numpy`, `scipy`, `pandas`)
+- Keep it in `Our project/`: it imports `genetic_algorithm_pfm` from the same folder.
+- The optimisation runs one cycle per run. Set `weights` and `prefs` to the same cycle and run all cells. `'tetra'` needs an internet connection.
+- The last cell holds the designs of all runs. After a new run, copy the printed design into its row.
 
-**`OceanCleanup_System03.ipynb`** (needs `matplotlib`, `numpy`, `scipy`)
-1. Keep it inside `Civil-Engineering-Systems-Design-main/`. It imports `genetic_algorithm_pfm` by relative import and fails with `ModuleNotFoundError` anywhere else.
-2. Run the cells from top to bottom. The design variables (x1–x5), their bounds, the fixed barrier length and the integer setting `var_type_mixed` are already in place.
-3. The remaining sections follow `EXAMPLE_Artificial_Reef.ipynb`: constraints, objective functions (one per row of the table above), preference functions, then the optimisation.
-4. Pass `var_type_mixed` to the GA `options` so that the number of systems (x3) stays a whole number.
-5. If the scheme is changed and the variables get renumbered, update `design_variables`, `bounds`, `var_type_mixed` and `X_irl` in this notebook to the same order.
-
-## Status and open points
-
-- Done: stakeholders, objectives, variables, scheme, variable definitions in the optimisation notebook.
-- To do: constraints, objective functions, preference functions, GA run and results.
-- Placeholders to replace with sourced values: bounds (especially towing speed and mesh size), `X_irl`, barrier length (2,500 m from The Ocean Cleanup's 2024 update; the Excel notes say 2.2 km).
-- The two sheets in the Excel file disagree on some weights (investors, citizens). Agree which one is authoritative before writing the preference functions.
-
-Please work on a separate git branch and merge after checking, as described in the main README.
+**`objective_scheme.ipynb`** (needs `matplotlib`)
+- Run all cells; the figure is saved as `stakeholder_objective_variable_scheme.png`.
+- To change the scheme, edit the *Content* cell and run all cells again. `VARIABLE_ORDER` fixes the order of the variables, so that the labels x1–x5 match the optimisation notebook.

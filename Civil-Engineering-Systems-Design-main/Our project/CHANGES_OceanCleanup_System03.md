@@ -355,10 +355,69 @@ The optimisation cell (GA call and options) and `genetic_algorithm_pfm` were not
 
 ---
 
-## 15. Open points
+## 15. Retention zone counted over towing days, results section, plot setting (sections *Importing Required Packages*, *Constraints*, *Optimisation*, new section *Results of all cycles*)
 
-1. All three constraints are active again (section 14), so they are kept.
-2. Discuss the preference limits marked "judgement" in section 2 and the proposed `pref_after` (section 9) and `pref_env` (section 14) with the team, and replace them with the answers of the stakeholder game.
+The optimisation cell (GA call and options) and `genetic_algorithm_pfm` were not changed.
+
+### Constraint 2 – retention zone capacity
+
+| | Previous | New |
+|---|---|---|
+| Plastic in the retention zone at extraction | `removed_per_system * (extraction_interval / 365)` | `removed_per_system / (uptime * 365) * extraction_interval` |
+
+- The previous version filled the retention zone at the yearly-average rate, which includes the 30 % of the year in which the system does not tow. A system only collects while it tows, so the 7 days between two extractions are now towing days.
+- Effect: one system can remove at most 25 t per 7 towing days, about 910 t/yr. Today's design fills 95 % of the retention zone instead of 66 %. About 17 % of the designs within the bounds exceed the limit (before: none), and the two-system optima of the technical and social cycle sit at the limit.
+- In the social cycle the min-max score is now set by The Ocean Cleanup alone (two systems at the limit give a score of 61). Designs with a bycatch between about 75,000 and 102,000 animals/yr have the same min-max score, so the GA returns a different design in every run. The results table holds two runs.
+
+### Results section (new cells after the optimisation cell)
+- One markdown cell and one code cell. The code cell holds the designs of all runs (three cycles with min-max and Tetra, a repeat run of the social cycle, the two runs with the weights and curves of different cycles, and a run with the donor budget limits doubled) and evaluates them with the model: objective values, cost and bycatch per tonne, preference scores, min-max score and use of the three constraint limits.
+- Two checks are printed: the most plastic that one system can remove within the constraints, and the share of the improvement that a second system gives.
+- The designs are the values printed by the optimisation cell (rounded to two decimals). After a new run, copy the printed design into its row.
+- New import in that cell: `pandas`.
+
+### Smaller changes
+- Import cell: `axes.formatter.limits` and `axes.formatter.use_mathtext`, so that the axis numbers of the bycatch panel no longer overlap in both figures.
+- *Optimisation* markdown: one sentence on the convergence warning of a-fine.
+- *Preference Curves* markdown: the changes in `pref_after` and `pref_env` are the outcome of our stakeholder game (was: "our proposal").
+- `Constants_and_Sources.ipynb`: `extraction_interval` is described as towing days.
+- `Stakeholder_Objectives_and_optimisation/README.md` rewritten (it still described the project before the model existed). `OLD_MCDA_OceanCleanup_System03.ipynb` removed.
+- The notebook was run once after these changes (social cycle); the stored outputs belong to the current code. `Summary/System03_Optimisation_Summary.docx` and its figures were rebuilt from the results table.
+
+---
+
+## 16. Retention factor: target and measured retention (sections *Objective Functions*, *Results of all cycles*)
+
+The optimisation cell (GA call and options) and `genetic_algorithm_pfm` were not changed.
+
+### Problem
+The model retains 71 % of the plastic that today's design meets (93 % not lost under the skirt x 90 % not lost to speed x 85 % larger than the mesh). This matches System 002 and 002B (68 and 73 %), on which `underflow_depth` was calibrated, but not System 03, for which 40 % was measured (Sainte-Rose et al., 2026, Table 2). The paper uses 40 % as today's performance and 70 % as the improvement target.
+
+### New version
+- New constant `retention_factor = 1.0` (constants cell, objective 2). 1.0 is the target retention, the model as it was. 0.56 is the measured retention: 40 % / 71 %.
+- `objective_function_2` multiplies its result by `retention_factor`. Through that function the factor also reaches the avoided microplastic in objective 5 and the retention zone constraint. Nothing else changes: bounds, `X_irl`, weights, preference curves and all other constants are as before.
+- One sentence in the description of objective 2; one row in `Constants_and_Sources.ipynb`.
+- Results cell: four rows with the measured retention (today's design and the min-max optimum of each cycle). Every row is evaluated with its own factor; rows without a factor use 1.0. The cell sets `retention_factor` while it evaluates and puts it back to the value of the constants cell at the end.
+- You moved `import pandas as pd` from the results cell to the import cell; this is kept.
+
+### Result with the measured retention (factor 0.56)
+
+| | Target (1.0) | Measured (0.56) |
+|---|---|---|
+| Today's design: plastic removal | 863 t/yr | 483 t/yr |
+| Today's design: cost per tonne | 15.6 k€ | 27.8 k€ |
+| Today's design: score of The Ocean Cleanup | 44 | 26 |
+| Today's design: retention zone filled | 95 % | 53 % |
+| Min-max optimum, technical / social / environmental | 2 / 2 / 3 systems | 2 / 3 / 3 systems |
+
+- With the measured retention one system removes at most about 720 t/yr, below the 910 t/yr that the retention zone allows, so that limit no longer binds.
+- The notebook was run once after these changes with the default of 1.0 (social cycle). The three measured-retention designs come from runs of the notebook with `retention_factor = 0.56` and the switches of each cycle (min-max). The Word summary was rebuilt.
+
+---
+
+## 17. Open points
+
+1. The retention zone limit rests on the choice of 7 towing days between two extractions (the EIA gives 2.5 to 7 days). With a shorter interval it would not bind.
+2. The measured-retention case scales the removal with one factor; it does not explain why the long wings of System 03 retain less than System 002.
 3. The budget limits of the cost curve (30 and 60 M€/yr) need a source. They were set when one system cost ~9.8 M€/yr; it now costs ~13.4 M€/yr.
 4. Two of the five objectives (plastic removal and net fragmentation) pull in the same direction; mention this in the reflection.
 5. The drag coefficient is calibrated on System 002 (10 mm mesh, 0.50 - 0.86 m/s) and does not depend on the mesh size `x5`; the speed bounds now go up to 1.29 m/s. The specification sheet used for the bollard pull and the fuel capacity is that of a sister vessel of the Maersk Tender.
